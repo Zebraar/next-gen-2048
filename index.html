@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next-Gen 2048 Custom</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <div class="game-area">
+        <header>
+            <div class="title-box">
+                <h1>2048</h1>
+            </div>
+            <div class="scores-container">
+                <div class="score-box">
+                    <div class="label">Score</div>
+                    <div class="val" id="score">0</div>
+                    <div id="score-pop-container"></div>
+                </div>
+                <div class="score-box">
+                    <div class="label">Best</div>
+                    <div class="val" id="best-score">0</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid-container" id="grid-container">
+            <div class="overlay" id="game-overlay">
+                <h2 id="overlay-text">Game Over</h2>
+                <button class="btn" onclick="game.restart()" style="width: 160px;">Заново</button>
+            </div>
+        </div>
+        <button class="btn" onclick="game.restart()">Сбросить игру</button>
+    </div>
+
+    <div class="settings-panel">
+        <h2>Кастомизация</h2>
+        
+        <div class="setting-group">
+            <label>Ширина поля: <span id="val-cols">4</span></label>
+            <input type="range" id="setup-cols" min="3" max="8" value="4">
+        </div>
+
+        <div class="setting-group">
+            <label>Высота поля: <span id="val-rows">4</span></label>
+            <input type="range" id="setup-rows" min="3" max="8" value="4">
+        </div>
+
+        <div class="setting-group">
+            <label>Шанс появления «2»: <span id="val-chance">90%</span></label>
+            <input type="range" id="setup-chance" min="10" max="100" step="5" value="90">
+        </div>
+
+        <div class="setting-group">
+            <label>Максимальная плитка: <span id="val-max">2048</span></label>
+            <input type="range" id="setup-max" min="6" max="14" step="1" value="11">
+        </div>
+
+        <div class="setting-group">
+            <label>Цветовая гамма: <span id="val-hue">Cyan</span></label>
+            <input type="range" id="setup-hue" min="0" max="360" value="190">
+        </div>
+
+        <button class="btn" onclick="game.applySettings()" style="background: linear-gradient(45deg, #00f2fe, #4facfe);">Применить</button>
+    </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
