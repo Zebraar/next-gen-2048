@@ -18,7 +18,7 @@ public class GameManager : MonoBehaviour
 {
     private GameState gameState = GameState.Playing;
     ItemArray matrix;
-    public GameObject GO2, GO4, GO8, GO16, GO32, GO64, GO128, GO256, GO512, GO1024, blankGO;
+    public GameObject GO2, GO4, GO8, GO16, GO32, GO64, GO128, GO256, GO512, GO1024, GO2048, GO4096, GO8192, GO16384, blankGO;
     public Text ScoreText, DebugText, HighScoreText;
     public UnityEvent winEvent;
     public UnityEvent duplicatedEvent;
@@ -398,6 +398,10 @@ public class GameManager : MonoBehaviour
             case 256: newGo = GO256; break;
             case 512: newGo = GO512; break;
             case 1024: newGo = GO1024; break;
+            case 2048: newGo = GO2048; break;
+            case 4096: newGo = GO4096; break;
+            case 8192: newGo = GO8192; break;
+            case 16384: newGo = GO16384; break;
             default:
                 throw new System.Exception("Uknown value:" + value);
         }
