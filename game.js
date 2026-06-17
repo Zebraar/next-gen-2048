@@ -7,8 +7,8 @@ class Game2048 {
         this.moveSpeed = 140; // Синхронизировано с CSS (--animation-speed)
 
         this.initDOM();
-        this.loadSettingsInputs(); // Синхронизация интерфейса с кэшем браузера
-        this.applySettings(true);  // Первичный запуск на основе ползунков
+        this.loadSettingsInputs(); 
+        this.applySettings(true);  
         this.setupInput();
     }
 
@@ -20,7 +20,6 @@ class Game2048 {
         this.overlayText = document.getElementById('overlay-text');
     }
 
-    // Инициализация текстов ползунков с учетом кэша браузера при перезагрузке
     loadSettingsInputs() {
         const syncSliderText = (sliderId, valId, isPowerOfTwo = false) => {
             const input = document.getElementById(sliderId);
@@ -43,7 +42,7 @@ class Game2048 {
                 }
             });
 
-            update(); // Запускаем один раз при старте, чтобы убрать дефолтные тексты HTML
+            update(); 
         };
 
         syncSliderText('setup-cols', 'val-cols');
@@ -75,7 +74,6 @@ class Game2048 {
         this.buildGridSystem();
         this.board = Array(this.rows).fill(null).map(() => Array(this.cols).fill(0));
         
-        // ИСПРАВЛЕНО: Правильное удаление DOM-элементов плиток
         this.tiles.forEach(t => t.el.remove());
         this.tiles = [];
 
@@ -187,7 +185,6 @@ class Game2048 {
         tileObj.c = newC;
     }
 
-    // Пересчет размеров плиток при ресайзе или смене сетки настройки
     recalculateLayout() {
         const layout = this.getLayout();
         this.tiles.forEach(tile => {
@@ -198,6 +195,7 @@ class Game2048 {
     }
 
     setupInput() {
+        // --- 1. ОБРАБОТКА КЛАВИАТУРЫ ---
         window.addEventListener('keydown', (e) => {
             if (this.isMoving || this.overlay.classList.contains('active')) return;
             let moved = false;
@@ -208,16 +206,62 @@ class Game2048 {
                 case 'ArrowRight': case 'd': case 'D': moved = this.move('right'); break;
                 default: return;
             }
-            if (moved) {
-                e.preventDefault();
-                this.isMoving = true;
-                setTimeout(() => {
-                    this.addRandomTile();
-                    this.checkGameState();
-                    this.isMoving = false;
-                }, this.moveSpeed);
-            }
+            if (moved) this.handleTurnCompletion();
         });
+
+        // --- 2. ОБРАБОТКА СВАЙПОВ (МОБИЛЬНЫЕ ТЕЛЕФОНЫ) ---
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        // Вешаем слушатель именно на игровое поле
+        this.gridContainer.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, { passive: false });
+
+        // Блокируем скролл страницы, пока палец движется по игровому полю
+        this.gridContainer.addEventListener('touchmove', (e) => {
+            e.preventDefault(); 
+        }, { passive: false });
+
+        this.gridContainer.addEventListener('touchend', (e) => {
+            if (this.isMoving || this.overlay.classList.contains('active')) return;
+            
+            let touchEndX = e.changedTouches[0].screenX;
+            let touchEndY = e.changedTouches[0].screenY;
+            
+            const diffX = touchEndX - touchStartX;
+            const diffY = touchEndY - touchStartY;
+            
+            const absX = Math.abs(diffX);
+            const absY = Math.abs(diffY);
+            
+            // Если свайп короче 30 пикселей - игнорируем (защита от случайных касаний)
+            if (Math.max(absX, absY) < 30) return;
+            
+            let moved = false;
+
+            // Определяем, по какой оси был свайп (где больше расстояние)
+            if (absX > absY) {
+                // Горизонтальный свайп
+                moved = diffX > 0 ? this.move('right') : this.move('left');
+            } else {
+                // Вертикальный свайп
+                moved = diffY > 0 ? this.move('down') : this.move('up');
+            }
+            
+            if (moved) this.handleTurnCompletion();
+        });
+    }
+
+    // Вынес завершение хода в отдельный метод, чтобы не дублировать код для клавиш и свайпов
+    handleTurnCompletion() {
+        this.isMoving = true;
+        setTimeout(() => {
+            this.addRandomTile();
+            this.checkGameState();
+            this.isMoving = false;
+        }, this.moveSpeed);
     }
 
     move(direction) {
