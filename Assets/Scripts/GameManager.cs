@@ -11,7 +11,8 @@ using System.IO.Compression;
 public enum GameState
 {
     Playing,
-    Won
+    Won,
+    Lose
 }
 
 public class GameManager : MonoBehaviour
@@ -22,6 +23,7 @@ public class GameManager : MonoBehaviour
     public Text ScoreText, DebugText, HighScoreText;
     public UnityEvent winEvent;
     public UnityEvent duplicatedEvent;
+    public UnityEvent loseEvent;
     public SoundEvent onPlayBubbleSound;
     public int maxTile = 2048;
     private float distance = 0.109f;
@@ -32,13 +34,14 @@ public class GameManager : MonoBehaviour
     public int GetScore() => score;
 
     [SerializeField]
-    private float swipeThreshold = 50f; // Минимальная длина свайпа в пикселях
+    private float swipeThreshold = 50f;
 
     private Vector2 touchStartPos;
     private Vector2 touchEndPos;
     private bool isSwiping = false;
     private bool isMoving = false; 
     private bool isWin = false;
+    private bool isLose = false;
     private bool isPause = false;
 
     //will read a file from Resources folder
@@ -59,7 +62,6 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // Use this for initialization
     void Start()
     {
         matrix = new ItemArray(Globals.Rows, Globals.Columns);
@@ -81,27 +83,19 @@ public class GameManager : MonoBehaviour
         Globals.Apply();
         maxTile = PlayerPrefs.GetInt("MaxTile", 2048);
 
-        // 1. ПОЛНАЯ ОЧИСТКА СЦЕНЫ ПЕРЕД СТАРТОМ
-        
-        // Удаляем все старые игровые плитки (2, 4, 8...), чтобы они не наслаивались
         GameObject[] oldTiles = GameObject.FindGameObjectsWithTag("Tile");
         foreach (GameObject tile in oldTiles)
         {
             Destroy(tile);
         }
 
-        // Удаляем все старые ячейки подложки поля, чтобы старое поле исчезло
         GameObject[] oldCells = GameObject.FindGameObjectsWithTag("GridCell");
         foreach (GameObject cell in oldCells)
         {
             Destroy(cell);
         }
 
-        // 2. Инициализируем новый массив под актуальные размеры
         matrix = new ItemArray(Globals.Rows, Globals.Columns); 
-
-        // 3. Запускаем генерацию нового поля и логику игры
-        // Здесь должен быть ваш вызов метода, который строит визуальную сетку (например, GenerateGrid() или аналогичный)
         
         CreateNewItem();
         CreateNewItem();
@@ -146,8 +140,6 @@ public class GameManager : MonoBehaviour
         matrix[randomRow, randomColumn] = newItem;
     }
 
-
-
     private void InitialPositionBackgroundSprites()
     {
         for (int row = 0; row < Globals.Rows; row++)
@@ -159,28 +151,23 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // Update is called once per frame
     void Update()
     {
         if (gameState == GameState.Playing)
         {
             if(isPause) return;
             if (isMoving) return; 
-            // Проверяем, активен ли тачскрин в данный момент
             if (Touchscreen.current != null)
             {
                 var touch = Touchscreen.current.primaryTouch;
 
-                // Если касания нет (фаза None), прерываем выполнение
                 if (!touch.press.isPressed && !isSwiping) return;
 
-                // Фиксируем начало касания (фаза Began аналог)
                 if (touch.press.wasPressedThisFrame)
                 {
                     touchStartPos = touch.position.ReadValue();
                     isSwiping = true;
                 }
-                // Фиксируем конец касания (фаза Ended аналог)
                 else if (touch.press.wasReleasedThisFrame && isSwiping)
                 {
                     touchEndPos = touch.position.ReadValue();
@@ -220,6 +207,14 @@ public class GameManager : MonoBehaviour
                 Debug.Log("Молодец!");
                 isWin = false;
             }
+        } else if(gameState == GameState.Lose)
+        {
+            if(isLose)
+            {
+                loseEvent.Invoke();
+                Debug.Log("Поганец");
+                isLose = false;
+            }
         }
     }
 
@@ -229,6 +224,7 @@ public class GameManager : MonoBehaviour
 
         yield return StartCoroutine(AnimateItems(details)); 
         
+        isLose = CheckIsLose();
         isMoving = false;
     }
 
@@ -261,23 +257,18 @@ public class GameManager : MonoBehaviour
 
     private void DetectSwipe()
     {
-        // Вычисляем вектор и длину свайпа
         Vector2 swipeVector = touchEndPos - touchStartPos;
         float swipeDistance = swipeVector.magnitude;
 
-        // Если свайп слишком короткий, игнорируем его
         if (swipeDistance < swipeThreshold) return;
 
-        // Определяем направление
         if (Mathf.Abs(swipeVector.x) > Mathf.Abs(swipeVector.y))
         {
-            // Горизонтальный свайп
             if (swipeVector.x > 0) Move(2);
             else Move(1);
         }
         else
         {
-            // Вертикальный свайп
             if (swipeVector.y > 0) Move(3);
             else Move(4);
         }
@@ -420,16 +411,39 @@ public class GameManager : MonoBehaviour
     }
     private Vector3 GetCellPosition(int row, int column)
     {
-        // Вычисляем общее смещение для центрирования сетки
         float offsetX = (Globals.Columns - 1) * (1f + distance) / 2f;
         float offsetY = (Globals.Rows - 1) * (1f + distance) / 2f;
 
-        // Сдвигаем координаты на половину ширины/высоты поля
         float x = (column * (1f + distance)) - offsetX;
         float y = (row * (1f + distance)) - offsetY;
 
-        // Применяем к позиции самого GameManager
         return this.transform.position + new Vector3(x, y, ZIndex);
     }
-}
 
+    private bool CheckIsLose()
+    {
+        for(int i = 0; i < Globals.Rows; i++)
+        {
+            for(int k = 0; k < Globals.Columns; k++)
+            {
+                if(matrix[i, k] == null) return false;
+                if(k + 1 < Globals.Columns)
+                {
+                    var rightNeighbor = matrix[i, k + 1];
+                    if (rightNeighbor == null || matrix[i, k].Value == rightNeighbor.Value) 
+                        return false;
+                }
+
+                if(i + 1 < Globals.Rows)
+                {
+                    var bottomNeighbor = matrix[i + 1, k];
+                    if (bottomNeighbor == null || matrix[i, k].Value == bottomNeighbor.Value) 
+                        return false;
+                }
+            }
+        }
+        gameState = GameState.Lose;
+        return true;
+    }
+
+}

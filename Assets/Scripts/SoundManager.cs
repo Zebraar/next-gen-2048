@@ -18,6 +18,7 @@ public class SoundManager : MonoBehaviour
     [SerializeField] private AudioClip[] bubbleSoundsCooler;
     [SerializeField] private AudioClip[] bubbleSoundsCoolest;
     [SerializeField] private AudioClip winSound;
+    [SerializeField] private AudioClip loseSound;
 
     [Header("Other")]
     [SerializeField] private AudioSource audioSource;
@@ -49,5 +50,9 @@ public class SoundManager : MonoBehaviour
     public void PlayWinSound()
     {
         audioSource.PlayOneShot(winSound);
+    }
+    public void PlayLoseSound()
+    {
+        audioSource.PlayOneShot(loseSound);
     }
 }
